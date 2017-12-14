@@ -11,7 +11,19 @@ valid_room = 'PIW'
 name = csv[:-4]
 peep_lim = None
 verbose = True
+n_future = 7
 RW = 'r' #'w'
+
+class Window(object):
+	def __init__(self, o_x, o_y, w, h):
+		self.origin = (o_x, o_y)
+		ext = setup_room()
+		self.x_lo, self.x_hi = o_x, o_x + w
+		self.y_lo, self.y_hi = ext[3] - o_y, ext[3] - (o_y + h) # y_lo > y_hi
+	def in_bounds(self, point):
+		x, y = point
+		return float(self.x_lo) < float(x) < float(self.x_hi) \
+			and float(self.y_hi) < float(y) < float(self.y_lo)
 
 # input: ['2013-02-10T07:18:53:050', 'PIW', '68064', '11071', '263']
 def row_to_dict(row): # output: tracklet dict
@@ -82,21 +94,42 @@ def setup_room():
 	return ext
 
 # Plot frame on a room
-def display_room(frame_id, at_once=True):
+def display_room(frame_id, frames=frames, at_once=True):
 	ext = setup_room()
 	plt.title('Frame {}'.format(frame_id))
 	print('frame {} has {} people in it'.format(frame_id, len(frames[str(frame_id)])))
-	for f_id in range(int(frame_id), int(frame_id)+5):
+	for f_id in range(int(frame_id), int(frame_id) + n_future):
 		for p_id, avg_loc in frames[str(f_id)]:
 			print('\t{}\t{}'.format(p_id, avg_loc))
 			plt.scatter(float(avg_loc[0]), ext[3]-float(avg_loc[1]), zorder=1, s=10)
 		if not at_once: plt.show(), setup_room()
 	if at_once: plt.show()
 
+# Show bounds on room by grid
+def show_bounds(grid):
+	setup_room()
+	plt.scatter(grid.x_lo, grid.y_lo)
+	plt.scatter(grid.x_lo, grid.y_hi)
+	plt.scatter(grid.x_hi, grid.y_lo)
+	plt.scatter(grid.x_hi, grid.y_hi)
+	plt.show()
 
-# 1. Overlay average locations onto an image/room to generate a view of a frame
-frame_id = random.choice([x for x in frames.keys() if int(x) > 40000])
-display_room(frame_id, at_once=False)
+# Filter frames to show locations only within a window
+def filter_frames(frames, grid):
+	new_frames = defaultdict(list)
+	for frame_id, avg_locs in frames.items():
+		for p_id, avg_loc in avg_locs:
+			if grid.in_bounds(avg_loc):
+				new_frames[frame_id].append((p_id, avg_loc))
+	return new_frames
+
+# 1. Overlay average locations onto an image/room to generate a view of a frame - done
+#frame_id = random.choice([x for x in frames.keys() if int(x) < 40000])
+#display_room(frame_id, at_once=True)
 
 # 2. Obtain all frames pertaining to a specific 320 x 320 pixel view of the image/room.
-
+grid = Window(o_x=850, o_y=150, w=160, h=80)
+show_bounds(grid)
+new_frames = filter_frames(frames, grid)
+frame_id = random.choice([x for x in new_frames.keys() if int(x) > 40000])
+display_room(frame_id, new_frames, at_once=False)
