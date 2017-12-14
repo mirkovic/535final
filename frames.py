@@ -1,6 +1,6 @@
 from glob import glob
 from collections import defaultdict
-import os, time, numpy as np, csv as CSV
+import os, time, random, numpy as np, csv as CSV
 import matplotlib.pyplot as plt
 
 t_window = 1 # length of time captured by a frame, in seconds
@@ -10,6 +10,7 @@ people = defaultdict()
 valid_room = 'PIW'
 name = csv[:-4]
 peep_lim = None
+verbose = True
 RW = 'r' #'w'
 
 # input: ['2013-02-10T07:18:53:050', 'PIW', '68064', '11071', '263']
@@ -28,6 +29,17 @@ def frame_id(tracklet):
 			 + int(tracklet['ms'])
 	return int(uniq_sec/(t_window*1000))
 
+# get the boundaries of all frames in the dict
+def get_extent(frames):
+	x_min, x_max, y_min, y_max = 2**20, -2**20, 2**20, -2**20
+	for frame_id, avg_locations in frames.items():
+		for p_id, avg_loc in avg_locations:
+			if float(avg_loc[0]) < x_min: x_min = float(avg_loc[0])
+			if float(avg_loc[0]) > x_max: x_max = float(avg_loc[0])
+			if float(avg_loc[1]) < y_min: y_min = float(avg_loc[1])
+			if float(avg_loc[1]) > y_max: y_max = float(avg_loc[1])
+	return [x_min, x_max, y_min, y_max]
+
 if RW == 'w': # create csv from parsed data
 	with open('{}-frames-{}s.csv'.format(name, t_window), 'a') as f:
 		with open(csv, 'r') as c:
@@ -38,7 +50,7 @@ if RW == 'w': # create csv from parsed data
 				if not t['id'] in people:
 					people[t['id']] = defaultdict(list) # {sec: [locs]}
 				people[t['id']][frame_id(t)].append(t['pos']/67)
-				print(t)
+				if verbose: print(t)
 				if peep_lim and t['id'] % peep_lim == 0: break # testing
 		for p_id, frame_list in people.items():
 			for frame_id, positions in frame_list.items():
@@ -52,33 +64,39 @@ if RW == 'r': # read existing csv
 		frame_list = CSV.reader(c, delimiter=',')
 		for frame_id, p_id, avg_x, avg_y in frame_list:
 			frames[frame_id].append((p_id, (avg_x, avg_y)))
-"""
-for frame_id, avg_locations in frames.items():
-	print('frame_id: {}'.format(frame_id))
-	for p_id, avg_loc in avg_locations:
-		print('\tp_id: {}\tavg loc: {}'.format(p_id, avg_loc))
 
 # Show the two clusters of people per frame of time
-plt.scatter([k for k in frames.keys() if int(k) < 30000], [len(v) for k, v in frames.items() if int(k) < 30000])
-plt.show()
-plt.scatter([k for k in frames.keys() if int(k) > 50000], [len(v) for k, v in frames.items() if int(k) > 50000])
-plt.show()
-"""
+def display_frames():
+	plt.scatter([k for k in frames.keys() if int(k) < 30000], [len(v) for k, v in frames.items() if int(k) < 30000])
+	plt.show()
+	plt.scatter([k for k in frames.keys() if int(k) > 50000], [len(v) for k, v in frames.items() if int(k) > 50000])
+	plt.show()
 
-x_min, x_max, y_min, y_max = -2**20, 2**20, -2**20, 2**20
-for frame_id, avg_locations in frames.items():
-	for p_id, avg_loc in avg_locations:
-		if avg_loc[0] < x_min: x_min = avg_loc[0]
-		if avg_loc[0] > x_max: x_max = avg_loc[0]
-		if avg_loc[1] < y_min: y_min = avg_loc[1]
-		if avg_loc[1] > y_max: y_max = avg_loc[1]
+# Plot image
+def setup_room():
+	ext = get_extent(frames)
+	img = plt.imread("./data/{}.jpg".format(valid_room))
+	aspect = img.shape[0]/float(img.shape[1])*((ext[1]-ext[0])/(ext[3]-ext[2]))
+	plt.imshow(img, zorder=0, extent=ext)
+	plt.gca().set_aspect(aspect)
+	return ext
+
+# Plot frame on a room
+def display_room(frame_id, at_once=True):
+	ext = setup_room()
+	plt.title('Frame {}'.format(frame_id))
+	print('frame {} has {} people in it'.format(frame_id, len(frames[str(frame_id)])))
+	for f_id in range(int(frame_id), int(frame_id)+5):
+		for p_id, avg_loc in frames[str(f_id)]:
+			print('\t{}\t{}'.format(p_id, avg_loc))
+			plt.scatter(float(avg_loc[0]), ext[3]-float(avg_loc[1]), zorder=1, s=10)
+		if not at_once: plt.show(), setup_room()
+	if at_once: plt.show()
+
 
 # 1. Overlay average locations onto an image/room to generate a view of a frame
-img = plt.imread("./data/{}.jpg".format(valid_room))
-plt.imshow(img, zorder=0, extent=[x_min, x_max, y_min, y_max])
-aspect = img.shape[0]/float(img.shape[1])*((ext[1]-ext[0])/(ext[3]-ext[2]))
-plt.gca().set_aspect(aspect)
-plt.show()
+frame_id = random.choice([x for x in frames.keys() if int(x) > 40000])
+display_room(frame_id, at_once=False)
 
 # 2. Obtain all frames pertaining to a specific 320 x 320 pixel view of the image/room.
 
