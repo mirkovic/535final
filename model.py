@@ -1,14 +1,25 @@
 from keras.models import Sequential, Model
-from keras.layers import Conv2D, Activation, Dropout, Dense, Input
+from keras.layers import Conv2D, Activation, Dropout, Dense, Input, Reshape, Flatten
 from keras.optimizers import Adam
+from keras.utils.generic_utils import get_custom_objects
+from tensorflow.python.client import device_lib
+print(device_lib.list_local_devices())
 
 import tensorflow as tf
 import numpy as np
+import time
 
+from frames import filter_frames
 from scipy import misc
 from glob import glob
 import csv
 
+
+def make_trainable(net, val):
+    net.trainable = val
+    for l in net.layers:
+        l.trainable = val
+		
 
 csvs_tmp = glob('data/CrowdDataset/*.csv')
 csvs = []
@@ -17,7 +28,8 @@ for cs in csvs_tmp:
 		csvs.append(cs)
 		
 print(csvs)
-exit()
+
+"""	
 data_sets = {}
 for c in csvs:
 	c.replace('\\','/')
@@ -44,10 +56,7 @@ for c in csvs:
 			
 				x = int(int(row[2]) / 67)
 				y = int(int(row[3]) / 67)
-				print(x)
-				print(y)
-				print(hour)
-				print(second)
+				
 				data_sets[c][row[1]][hour][second-3600*hour][x][y] = 1
 
 print( csvs )
@@ -56,23 +65,282 @@ inputs = Input(shape=input_data.shape)
 
 opt = Adam(lr=1e-3)
 dopt = Adam(lr=1e-4)
+"""
 
-#Generator
-Dense(16, activation='relu')(inputs)
-Dense(32, activation='relu')()
+grid_x = 160
+grid_y = 80
+
+dim4 = (int(grid_x/2**3),int(grid_y/2**3))
+dim3 = (int(grid_x/2**2),int(grid_y/2**2))
+dim2 = (int(grid_x/2),int(grid_y/2))
+dim1 = (int(grid_x),int(grid_y))
+
+### Multi-Scale Generators
+def in_top_k(x):
+	return tf.nn.in_top_k(x[0],x[0],x[1])
+	
+get_custom_objects().update({'in_top_k': Activation(in_top_k)})
+
+# First smallest scale
+g_input_4 = Input((*dim4,4))
+t = Conv2D(128,3,padding='same',activation='relu')(g_input_4)
+t = Conv2D(256,3,padding='same',activation='relu')(t)
+t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Conv2D(1,3,padding='same',activation='relu')(t)
+t = Flatten()(t)
+g_output_4 = Reshape((*dim4,1))(Dense(dim4[0]*dim4[1],activation='softmax')(t))
+print(g_output_4.get_shape())
+g4 = Model(g_input_4,g_output_4)
+
+# Second smallest scale
+g_input_3 = Input((*dim3,5))
+t = Conv2D(128,5,padding='same',activation='relu')(g_input_3)
+t = Conv2D(256,3,padding='same',activation='relu')(t)
+t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Conv2D(1,5,padding='same',activation='relu')(t)
+t = Flatten()(t)
+g_output_3 = Reshape((*dim3,1))(Dense(dim3[0]*dim3[1],activation='softmax')(t))
+g3 = Model(g_input_3,g_output_3)
+
+
+# thrid smallest scale
+g_input_2 = Input((*dim2,5))
+t = Conv2D(128,5,padding='same',activation='relu')(g_input_2)
+t = Conv2D(256,3,padding='same',activation='relu')(t)
+t = Conv2D(512,3,padding='same',activation='relu')(t)
+t = Conv2D(256,3,padding='same',activation='relu')(t)
+t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Conv2D(1,5,padding='same',activation='relu')(t)
+t = Flatten()(t)
+g_output_2 = Reshape((*dim2,1))(Dense(dim2[0]*dim2[1],activation='softmax')(t))
+g2 = Model(g_input_2,g_output_2)
+
+
+# Full scale
+g_input_1 = Input((*dim1,5))
+t = Conv2D(128,7,padding='same',activation='relu')(g_input_1)
+t = Conv2D(256,5,padding='same',activation='relu')(t)
+t = Conv2D(512,5,padding='same',activation='relu')(t)
+t = Conv2D(256,5,padding='same',activation='relu')(t)
+t = Conv2D(128,5,padding='same',activation='relu')(t)
+t = Conv2D(1,7,padding='same',activation='relu')(t)
+t = Flatten()(t)
+g_output_1 = Reshape((*dim1,1))(Dense(dim1[0]*dim1[1],activation='softmax')(t))
+g1 = Model(g_input_1,g_output_1)
 
 
 
 
-d_input = Input(shape=shp)
-H = Convolution2D(256, 5, 5, subsample=(2, 2), border_mode = 'same', activation='relu')(d_input)
-H = LeakyReLU(0.2)(H)
-H = Dropout(dropout_rate)(H)
-H = Convolution2D(512, 5, 5, subsample=(2, 2), border_mode = 'same', activation='relu')(H)
-H = LeakyReLU(0.2)(H)
-H = Dropout(dropout_rate)(H)
-H = Flatten()(H)
-H = Dense(256)(H)
-H = LeakyReLU(0.2)(H)
-H = Dropout(dropout_rate)(H)
-d_V = Dense(2,activation='softmax')(H)
+####################################################################################################################
+
+
+
+
+### Multi-Scale Discriminators
+d_input_4 = Input((*dim4,1))
+t = Conv2D(64,3,padding='valid',activation='relu')(d_input_4)
+t = Flatten()(t)
+t = Dense(512)(t)
+t = Dense(256)(t)
+d_output_4 = Dense(1,activation='softmax')(t)
+d4 = Model(d_input_4,d_output_4)
+
+
+d_input_3 = Input((*dim3,1))
+t = Conv2D(64,3,padding='same',activation='relu')(d_input_3)
+t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Flatten()(t)
+t = Dense(1024)(t)
+t = Dense(512)(t)
+d_output_3 = Dense(1,activation='softmax')(t)
+d3 = Model(d_input_3,d_output_3)
+
+
+d_input_2 = Input((*dim2,1))
+t = Conv2D(128,5,padding='same',activation='relu')(d_input_2)
+t = Conv2D(256,5,padding='same',activation='relu')(t)
+t = Conv2D(256,5,padding='same',activation='relu')(t)
+t = Flatten()(t)
+t = Dense(1024)(t)
+t = Dense(512)(t)
+d_output_2 = Dense(1,activation='softmax')(t)
+d2 = Model(d_input_2,d_output_2)
+
+
+d_input_1 = Input((*dim1,1))
+t = Conv2D(128,7,padding='same',activation='relu')(d_input_1)
+t = Conv2D(256,7,padding='same',activation='relu')(t)
+t = Conv2D(512,5,padding='same',activation='relu')(t)
+t = Conv2D(128,5,padding='same',activation='relu')(t)
+t = Flatten()(t)
+t = Dense(1024)(t)
+t = Dense(512)(t)
+d_output_1 = Dense(1,activation='softmax')(t)
+d1 = Model(d_input_1,d_output_1)
+
+
+
+
+#############################################################################################################
+
+
+
+
+### Attach all Components
+opt=Adam(lr=1e-3)
+
+### compile and attach all generators to each other
+g4.compile(loss='mean_absolute_error',optimizer=opt)
+g4_p = g4( Input((*dim4,4)) )
+
+g3.compile(loss='mean_absolute_error',optimizer=opt)
+g3_p = g3( 
+	tf.concat((Input((*dim3,4)), tf.image.resize_images(g4_p,dim3)),
+	axis=3) )
+	
+g2.compile(loss='mean_absolute_error',optimizer=opt)
+g2_p = g2( 
+	tf.concat((Input((*dim2,4)), tf.image.resize_images(g3_p,dim2)),
+	axis=3) )
+
+g1.compile(loss='mean_absolute_error',optimizer=opt)
+g1_p = g1( tf.concat(
+	(Input((*dim1,4)), tf.image.resize_images(g2_p,dim1)),
+	axis=3) )
+
+
+
+opt=Adam(lr=1e-3)
+
+### compile discriminators and attach generators to discriminators
+d4.compile(loss='mean_absolute_error',optimizer=opt)
+print('g4_p')
+print(tf.shape(g4_p))
+d4_p = d4( g4_p )
+print(d4_p.get_shape())
+d3.compile(loss='mean_absolute_error',optimizer=opt)
+d3_p = d3( g3_p )
+
+d2.compile(loss='mean_absolute_error',optimizer=opt)
+d2_p = d2( g2_p )
+
+d1.compile(loss='mean_absolute_error',optimizer=opt)
+
+
+print(d1.summary())
+
+
+x = filter_frames()
+print(x[64000])
+t = [i for i in x.keys() if int(i) > 40000]
+t.sort()
+positions = [[ list(map(float,j[1:])) for j in x[i]] for i in t]
+pid = [[j[0] for j in x[i]] for i in t]
+
+
+position_maps= []
+for i in range(len(t)):
+	position_maps.append(np.zeros(dim1))
+	for p in positions[i]:
+		position_maps[-1][int(p[0])-850][int(p[1])-150] = 1
+
+
+
+
+### Make sequences of 4 frams, and output of next frame
+sequences = {1:[],2:[],3:[],4:[]}
+next_frame = position_maps[4:]
+
+### resizes batch of images (doesn't work for batch of sequences of images)
+def res(images,scale):
+	final = []
+	for i in images:
+		i = np.squeeze(i)
+		final.append( misc.imresize(i,1.*2**scale) ) 
+	return np.asarray(final)[:,:,:,np.newaxis]
+	
+### Downscales input for each scale
+for i in range(len(position_maps)-4):
+	seq = position_maps[i:i+4]
+	sequences[4].append( list(map(lambda j: misc.imresize(j,.125), seq)) )
+	sequences[3].append( list(map(lambda j: misc.imresize(j,.25), seq)) )
+	sequences[2].append( list(map(lambda j: misc.imresize(j,.5), seq)) )
+	sequences[1].append( position_maps[i:i+4] )
+
+### convert sequences into tensor with appropriate dimensions
+dims = {1:dim1,2:dim2,3:dim3,4:dim4}	
+for i in (1,2,3,4):
+	sequences[i] = np.asarray(sequences[i])
+	sequences[i] = np.reshape(sequences[i],(len(sequences[i]),*dims[i],4))
+#sequences = tf.convert_to_tensor(sequences,dtype=tf.float32)
+#sequences = tf.expand_dims(sequences,axis=[-1])	
+#print(sequences.get_shape())
+
+sess = tf.Session()
+x4 = sequences[4]
+x3 = sequences[3]
+x2 = sequences[2]
+x1 = sequences[1]
+
+
+def probable_people(output,input):
+	print(len(np.split(input,[1],axis=3)))
+	print(len(np.split(input,[1],axis=3)[0]))
+	print(len(np.split(input,[1],axis=3)[0][0]))
+	print(len(np.split(input,[1],axis=3)[0][0][0]))
+	print(len(np.split(input,[1],axis=3)[0][0][0][0]))
+
+	N_people = np.sum(np.split(input,[1],axis=3)[0],axis=tuple(range(1,len(input.shape))))
+	print(len(input[0]))
+	print(input.shape)
+	#print(N_people.shape)
+	#probabilities = np.sort(output.ravel()).tolist()
+	#print(probabilities)
+	#print(len(probabilities))
+	print(N_people[0])
+	print(-1*N_people[1])
+	probabilities = []
+	for i in range(len(input)):
+		np.sort(output.ravel()).tolist()
+		print( time.time() )
+		print('ravel')
+		a = output[i].ravel()
+		print(time.time())
+		print('sort')
+		np.sort(a).tolist()[-1*N_people[i]:]
+		print(time.time())
+		probabilities.append(np.sort(output[i].ravel()).tolist()[-1*N_people[i]:])
+		print(probabilities[-1])
+	other = np.zeros(output.shape)
+	for i in range(len(output)):
+		for j in range(len(output[i])):
+			for k in range(len(output[i][j])):
+				if output[i][j][k][0] in probabilities[i]:
+					other[i][j][k][0] = 1
+					
+	return other
+	
+
+
+print('calculating first noise bunch')
+noise4 = g4.predict(x4,steps=1)
+print('calculating second noise bunch')
+noise_people4 = probable_people(noise4,x4[:len(noise4)])
+print('actually doing second')
+noise3 = g3.predict(np.concatenate((x3, res(noise4,1)),axis=3),steps=1)
+print('calculating third noise bunch')
+noise_people3 = probable_people(noise3,x4[:len(noise3)])
+noise2 = g2.predict(np.concatenate((x2, res(noise3,1)),axis=3),steps=1)
+print('calculating first noise bunch')
+noise_people2 = probable_people(noise2,x4[:len(noise2)])
+noise1 = g1.predict(np.concatenate((x1, res(noise2,1)),axis=3),steps=1)
+noise_people1 = probable_people(noise1,x4[:len(noise1)])
+
+
+
+
+
+d1.train()
+
+
