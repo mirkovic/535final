@@ -11,6 +11,8 @@ import keras as K
 import keras.backend as kb
 import tensorflow as tf
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import time
 
