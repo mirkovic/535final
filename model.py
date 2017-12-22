@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import time
 
 #from frames1 import filter_frames
-from frames import get_matrices
+from frames_alternate import get_matrices
 from scipy import misc
 from glob import glob
 import csv
