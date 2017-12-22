@@ -76,10 +76,10 @@ dopt = Adam(lr=1e-4)
 grid_x = 160
 grid_y = 80
 
-dim4 = (int(grid_x/2**3),int(grid_y/2**3))
-dim3 = (int(grid_x/2**2),int(grid_y/2**2))
-dim2 = (int(grid_x/2),int(grid_y/2))
-dim1 = (int(grid_x),int(grid_y))
+dim4 = [int(grid_x/2**3),int(grid_y/2**3)]
+dim3 = [int(grid_x/2**2),int(grid_y/2**2)]
+dim2 = [int(grid_x/2),int(grid_y/2)]
+dim1 = [int(grid_x),int(grid_y)]
 
 ### Multi-Scale Generators
 def in_top_k(x):
@@ -123,7 +123,7 @@ def N_highest(X):
 	X = X.ravel()
 	top_k(X,N)
 
-g_input = Input((*dim1,1))
+g_input = Input(dim1+[1])
 g_input_1 = g_input
 g_input_2 = Lambda(lambda x: tf.image.resize_images(x,dim2))(g_input)
 g_input_3 = Lambda(lambda x: tf.image.resize_images(x,dim3))(g_input)
@@ -133,7 +133,7 @@ downscaler_output_2_1 = Model(g_input, g_input_2)
 downscaler_output_3_1 = Model(g_input, g_input_3)
 downscaler_output_4_1 = Model(g_input, g_input_4)
 
-g_input = Input((*dim1,4))
+g_input = Input(dim1+[4])
 g_input_1 = g_input
 g_input_2 = Lambda(lambda x: tf.image.resize_images(x,dim2))(g_input)
 g_input_3 = Lambda(lambda x: tf.image.resize_images(x,dim3))(g_input)
@@ -152,7 +152,7 @@ t = Conv2D(1,3,padding='same',activation='relu')(t)
 t = Flatten()(t)
 t = Dense(dim4[0]*dim4[1],activation='softmax')(t)
 
-g_output_4 = Reshape((*dim4,1))(Dense(dim4[0]*dim4[1],activation='softmax')(t))
+g_output_4 = Reshape(dim4+[1])(Dense(dim4[0]*dim4[1],activation='softmax')(t))
 #g4 = Model(g_input_4,g_output_4,name='Scale_4_Generator')
 
 # Second smallest scale
@@ -167,7 +167,7 @@ t = Conv2D(256,3,padding='same',activation='relu')(t)
 t = Conv2D(128,3,padding='same',activation='relu')(t)
 t = Conv2D(1,5,padding='same',activation='relu')(t)
 t = Flatten()(t)
-g_output_3 = Reshape((*dim3,1))(Dense(dim3[0]*dim3[1],activation='softmax')(t))
+g_output_3 = Reshape(dim3+[1])(Dense(dim3[0]*dim3[1],activation='softmax')(t))
 #g3 = Model(g_input_3,g_output_3,name='Scale_3_Generator')
 
 
@@ -182,7 +182,7 @@ t = Conv2D(256,3,padding='same',activation='relu')(t)
 t = Conv2D(128,3,padding='same',activation='relu')(t)
 t = Conv2D(1,5,padding='same',activation='relu')(t)
 t = Flatten()(t)
-g_output_2 = Reshape((*dim2,1))(Dense(dim2[0]*dim2[1],activation='softmax')(t))
+g_output_2 = Reshape(dim2+[1])(Dense(dim2[0]*dim2[1],activation='softmax')(t))
 #g2 = Model(g_input_2,g_output_2,name='Scale_2_Generator')
 
 
@@ -197,7 +197,7 @@ t = Conv2D(256,5,padding='same',activation='relu')(t)
 t = Conv2D(128,5,padding='same',activation='relu')(t)
 t = Conv2D(1,7,padding='same',activation='relu')(t)
 t = Flatten()(t)
-g_output_1 = Reshape((*dim1,1))(Dense(dim1[0]*dim1[1],activation='softmax')(t))
+g_output_1 = Reshape(dim1+[1])(Dense(dim1[0]*dim1[1],activation='softmax')(t))
 #g1 = Model(g_input_1,g_output_1,name='Scale_1_Generator')
 
 #gs = [g4,g3,g2,g1]
@@ -212,7 +212,7 @@ G = Model( g_input, outputs = generator_outputs )
 
 
 ### Multi-Scale Discriminators
-d_input_4 = Input((*dim4,5))
+d_input_4 = Input(dim4+[5])
 t = Conv2D(64,3,padding='valid',activation='relu')(d_input_4)
 t = Flatten()(t)
 t = Dense(512)(t)
@@ -221,7 +221,7 @@ d_output_4 = Dense(1,activation='sigmoid')(t)
 d4 = Model(d_input_4,d_output_4,name='Scale_4_Discriminator')
 
 
-d_input_3 = Input((*dim3,5))
+d_input_3 = Input(dim3+[5])
 t = Conv2D(64,3,padding='same',activation='relu')(d_input_3)
 t = Conv2D(128,3,padding='same',activation='relu')(t)
 t = Conv2D(128,3,padding='same',activation='relu')(t)
@@ -232,7 +232,7 @@ d_output_3 = Dense(1,activation='sigmoid')(t)
 d3 = Model(d_input_3,d_output_3,name='Scale_3_Discriminator')
 
 
-d_input_2 = Input((*dim2,5))
+d_input_2 = Input(dim2+[5])
 t = Conv2D(128,5,padding='same',activation='relu')(d_input_2)
 t = Conv2D(256,5,padding='same',activation='relu')(t)
 t = Conv2D(256,5,padding='same',activation='relu')(t)
@@ -243,7 +243,7 @@ d_output_2 = Dense(1,activation='sigmoid')(t)
 d2 = Model(d_input_2,d_output_2,name='Scale_2_Discriminator')
 
 
-d_input_1 = Input((*dim1,5))
+d_input_1 = Input(dim1+[5])
 t = Conv2D(128,7,padding='same',activation='relu')(d_input_1)
 t = Conv2D(256,7,padding='same',activation='relu')(t)
 t = Conv2D(512,5,padding='same',activation='relu')(t)
@@ -382,7 +382,7 @@ exit()
 
 
 
-
+"""
 ### Attach all Components
 opt=Adam(lr=1e-3)
 
@@ -570,7 +570,7 @@ for i in range(4):
 	make_trainable(ds[i])
 	
 	
-	
+"""
 
 
 
