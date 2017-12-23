@@ -314,7 +314,7 @@ a = []
 print('getting matrices')
 num_points = 200
 if os.path.isfile('data/useful'+str(num_points)+'.npy'):
-	a = np.load('data/useful.npy')
+	a = np.load('data/useful'+str(num_points)+'.npy')
 	print('loaded numpy dataset')
 else:
 	for i in range(num_points):
@@ -333,7 +333,7 @@ else:
 	a = np.swapaxes(a,1,3)
 	a = np.swapaxes(a,1,2)
 	print(a.shape)	
-	np.save('data/useful.npy',a)
+	np.save('data/useful'+str(num_points)+'.npy',a)
 
 X = a[:,:,:,:4]
 Y = a[:,:,:,4:]
