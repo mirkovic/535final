@@ -313,7 +313,7 @@ a = []
 print('getting matrices')
 for i in range(1000):
 	if i % 20 == 0:
-		print('getting matrix i')
+		print('getting matrix',i)
 	new_frames = get_matrices()
 	list_frames = []
 	keys = list(new_frames.keys())
