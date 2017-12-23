@@ -103,8 +103,6 @@ def get_upscale_output_shape(input_shape):
 	
 def downscale_image(X):
 	this_shape = tf.shape(X)
-	print(this_shape[0])
-	print((this_shape[1]/2,this_shape[2]/2))
 	return tf.image.resize_images(X,(this_shape[1]/2,this_shape[2]/2))
 	
 def get_downscaled_output_shape(input_shape):
@@ -314,6 +312,8 @@ GAN.compile(loss='binary_crossentropy', optimizer=Adam(lr=1e-3))
 a = []
 print('getting matrices')
 for i in range(1000):
+	if i % 20 == 0:
+		print('getting matrix i')
 	new_frames = get_matrices()
 	list_frames = []
 	keys = list(new_frames.keys())
