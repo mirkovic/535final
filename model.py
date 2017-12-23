@@ -145,9 +145,9 @@ downscaler_output_4 = Model(g_input, g_input_4)
 
 # First smallest scale
 #g_input_4 = Input((*dim4,4))
-t = Conv2D(128,3,padding='same',activation='relu')(g_input_4)
-t = Conv2D(256,3,padding='same',activation='relu')(t)
-t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Conv2D(16,3,padding='same',activation='relu')(g_input_4)
+t = Conv2D(32,3,padding='same',activation='relu')(t)
+t = Conv2D(15,3,padding='same',activation='relu')(t)
 t = Conv2D(1,3,padding='same',activation='relu')(t)
 t = Flatten()(t)
 t = Dense(dim4[0]*dim4[1],activation='softmax')(t)
@@ -162,9 +162,9 @@ g_output_4 = Reshape(dim4+[1])(Dense(dim4[0]*dim4[1],activation='softmax')(t))
 #g_input_3_2 = Lambda(concatenate_inputs,output_shape=get_concatenate_shape)(g_input_3)
 #full_g_input_3 = concatenate([g_input_3_2,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g_output_4)], axis=-1)
 full_g_input_3 = concatenate([g_input_3,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g_output_4)], axis=-1 )
-t = Conv2D(128,5,padding='same',activation='relu')(full_g_input_3)
-t = Conv2D(256,3,padding='same',activation='relu')(t)
-t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Conv2D(16,5,padding='same',activation='relu')(full_g_input_3)
+t = Conv2D(64,3,padding='same',activation='relu')(t)
+t = Conv2D(32,3,padding='same',activation='relu')(t)
 t = Conv2D(1,5,padding='same',activation='relu')(t)
 t = Flatten()(t)
 g_output_3 = Reshape(dim3+[1])(Dense(dim3[0]*dim3[1],activation='softmax')(t))
@@ -175,11 +175,11 @@ g_output_3 = Reshape(dim3+[1])(Dense(dim3[0]*dim3[1],activation='softmax')(t))
 #g_input_2 = Input((*dim2,5))
 #full_g_input_2 = K.backend.concatenate([g_input_2,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g3)])
 full_g_input_2 = concatenate([g_input_2,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g_output_3)], axis=-1 )
-t = Conv2D(128,5,padding='same',activation='relu')(full_g_input_2)
-t = Conv2D(256,3,padding='same',activation='relu')(t)
-t = Conv2D(512,3,padding='same',activation='relu')(t)
-t = Conv2D(256,3,padding='same',activation='relu')(t)
-t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Conv2D(16,5,padding='same',activation='relu')(full_g_input_2)
+t = Conv2D(32,3,padding='same',activation='relu')(t)
+t = Conv2D(64,3,padding='same',activation='relu')(t)
+t = Conv2D(32,3,padding='same',activation='relu')(t)
+t = Conv2D(16,3,padding='same',activation='relu')(t)
 t = Conv2D(1,5,padding='same',activation='relu')(t)
 t = Flatten()(t)
 g_output_2 = Reshape(dim2+[1])(Dense(dim2[0]*dim2[1],activation='softmax')(t))
@@ -190,11 +190,11 @@ g_output_2 = Reshape(dim2+[1])(Dense(dim2[0]*dim2[1],activation='softmax')(t))
 #g_input_1 = Input((*dim1,5))
 #full_g_input_1 = K.backend.concatenate([g_input_1,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g2)])
 full_g_input_1 = concatenate([g_input_1,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g_output_2)], axis=-1 )
-t = Conv2D(128,7,padding='same',activation='relu')(full_g_input_1)
-t = Conv2D(256,5,padding='same',activation='relu')(t)
-t = Conv2D(512,5,padding='same',activation='relu')(t)
-t = Conv2D(256,5,padding='same',activation='relu')(t)
-t = Conv2D(128,5,padding='same',activation='relu')(t)
+t = Conv2D(16,7,padding='same',activation='relu')(full_g_input_1)
+t = Conv2D(32,5,padding='same',activation='relu')(t)
+t = Conv2D(64,5,padding='same',activation='relu')(t)
+t = Conv2D(32,5,padding='same',activation='relu')(t)
+t = Conv2D(16,5,padding='same',activation='relu')(t)
 t = Conv2D(1,7,padding='same',activation='relu')(t)
 t = Flatten()(t)
 g_output_1 = Reshape(dim1+[1])(Dense(dim1[0]*dim1[1],activation='softmax')(t))
@@ -213,44 +213,44 @@ G = Model( g_input, outputs = generator_outputs )
 
 ### Multi-Scale Discriminators
 d_input_4 = Input(dim4+[5])
-t = Conv2D(64,3,padding='valid',activation='relu')(d_input_4)
+t = Conv2D(16,3,padding='valid',activation='relu')(d_input_4)
 t = Flatten()(t)
-t = Dense(512)(t)
-t = Dense(256)(t)
+t = Dense(64)(t)
+t = Dense(32)(t)
 d_output_4 = Dense(1,activation='sigmoid')(t)
 d4 = Model(d_input_4,d_output_4,name='Scale_4_Discriminator')
 
 
 d_input_3 = Input(dim3+[5])
-t = Conv2D(64,3,padding='same',activation='relu')(d_input_3)
-t = Conv2D(128,3,padding='same',activation='relu')(t)
-t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Conv2D(16,3,padding='same',activation='relu')(d_input_3)
+t = Conv2D(32,3,padding='same',activation='relu')(t)
+t = Conv2D(32,3,padding='same',activation='relu')(t)
 t = Flatten()(t)
-t = Dense(1024)(t)
-t = Dense(512)(t)
+t = Dense(128)(t)
+t = Dense(64)(t)
 d_output_3 = Dense(1,activation='sigmoid')(t)
 d3 = Model(d_input_3,d_output_3,name='Scale_3_Discriminator')
 
 
 d_input_2 = Input(dim2+[5])
-t = Conv2D(128,5,padding='same',activation='relu')(d_input_2)
-t = Conv2D(256,5,padding='same',activation='relu')(t)
-t = Conv2D(256,5,padding='same',activation='relu')(t)
+t = Conv2D(32,5,padding='same',activation='relu')(d_input_2)
+t = Conv2D(64,5,padding='same',activation='relu')(t)
+t = Conv2D(64,5,padding='same',activation='relu')(t)
 t = Flatten()(t)
-t = Dense(1024)(t)
-t = Dense(512)(t)
+t = Dense(128)(t)
+t = Dense(64)(t)
 d_output_2 = Dense(1,activation='sigmoid')(t)
 d2 = Model(d_input_2,d_output_2,name='Scale_2_Discriminator')
 
 
 d_input_1 = Input(dim1+[5])
-t = Conv2D(128,7,padding='same',activation='relu')(d_input_1)
-t = Conv2D(256,7,padding='same',activation='relu')(t)
-t = Conv2D(512,5,padding='same',activation='relu')(t)
-t = Conv2D(128,5,padding='same',activation='relu')(t)
+t = Conv2D(16,7,padding='same',activation='relu')(d_input_1)
+t = Conv2D(32,7,padding='same',activation='relu')(t)
+t = Conv2D(64,5,padding='same',activation='relu')(t)
+t = Conv2D(16,5,padding='same',activation='relu')(t)
 t = Flatten()(t)
-t = Dense(1024)(t)
-t = Dense(512)(t)
+t = Dense(128)(t)
+t = Dense(64)(t)
 d_output_1 = Dense(1,activation='sigmoid')(t)
 d1 = Model(d_input_1,d_output_1,name='Scale_1_Discriminator')
 
@@ -571,6 +571,119 @@ for i in range(4):
 	ds.fit(np.concatenate((noises[i],xs[i]),axis=0),ys)
 	make_trainable(ds[i])
 	
+	
+	
+	
+	
+	
+t = Conv2D(128,3,padding='same',activation='relu')(g_input_4)
+t = Conv2D(256,3,padding='same',activation='relu')(t)
+t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Conv2D(1,3,padding='same',activation='relu')(t)
+t = Flatten()(t)
+t = Dense(dim4[0]*dim4[1],activation='softmax')(t)
+
+g_output_4 = Reshape(dim4+[1])(Dense(dim4[0]*dim4[1],activation='softmax')(t))
+#g4 = Model(g_input_4,g_output_4,name='Scale_4_Generator')
+
+# Second smallest scale
+#g_input_3 = Input((*dim3,5))
+#full_g_input_3 = K.backend.concatenate([g_input_3,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g_output_4)])
+#print(g4.get_layer(index=-1))
+#g_input_3_2 = Lambda(concatenate_inputs,output_shape=get_concatenate_shape)(g_input_3)
+#full_g_input_3 = concatenate([g_input_3_2,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g_output_4)], axis=-1)
+full_g_input_3 = concatenate([g_input_3,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g_output_4)], axis=-1 )
+t = Conv2D(128,5,padding='same',activation='relu')(full_g_input_3)
+t = Conv2D(256,3,padding='same',activation='relu')(t)
+t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Conv2D(1,5,padding='same',activation='relu')(t)
+t = Flatten()(t)
+g_output_3 = Reshape(dim3+[1])(Dense(dim3[0]*dim3[1],activation='softmax')(t))
+#g3 = Model(g_input_3,g_output_3,name='Scale_3_Generator')
+
+
+# thrid smallest scale
+#g_input_2 = Input((*dim2,5))
+#full_g_input_2 = K.backend.concatenate([g_input_2,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g3)])
+full_g_input_2 = concatenate([g_input_2,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g_output_3)], axis=-1 )
+t = Conv2D(128,5,padding='same',activation='relu')(full_g_input_2)
+t = Conv2D(256,3,padding='same',activation='relu')(t)
+t = Conv2D(512,3,padding='same',activation='relu')(t)
+t = Conv2D(256,3,padding='same',activation='relu')(t)
+t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Conv2D(1,5,padding='same',activation='relu')(t)
+t = Flatten()(t)
+g_output_2 = Reshape(dim2+[1])(Dense(dim2[0]*dim2[1],activation='softmax')(t))
+#g2 = Model(g_input_2,g_output_2,name='Scale_2_Generator')
+
+
+# Full scale
+#g_input_1 = Input((*dim1,5))
+#full_g_input_1 = K.backend.concatenate([g_input_1,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g2)])
+full_g_input_1 = concatenate([g_input_1,Lambda(upscale_image,output_shape=get_upscale_output_shape)(g_output_2)], axis=-1 )
+t = Conv2D(128,7,padding='same',activation='relu')(full_g_input_1)
+t = Conv2D(256,5,padding='same',activation='relu')(t)
+t = Conv2D(512,5,padding='same',activation='relu')(t)
+t = Conv2D(256,5,padding='same',activation='relu')(t)
+t = Conv2D(128,5,padding='same',activation='relu')(t)
+t = Conv2D(1,7,padding='same',activation='relu')(t)
+t = Flatten()(t)
+g_output_1 = Reshape(dim1+[1])(Dense(dim1[0]*dim1[1],activation='softmax')(t))
+#g1 = Model(g_input_1,g_output_1,name='Scale_1_Generator')
+
+#gs = [g4,g3,g2,g1]
+generator_outputs = [g_output_4,g_output_3,g_output_2,g_output_1]
+G = Model( g_input, outputs = generator_outputs )
+
+
+
+####################################################################################################################
+
+
+
+
+### Multi-Scale Discriminators
+d_input_4 = Input(dim4+[5])
+t = Conv2D(64,3,padding='valid',activation='relu')(d_input_4)
+t = Flatten()(t)
+t = Dense(512)(t)
+t = Dense(256)(t)
+d_output_4 = Dense(1,activation='sigmoid')(t)
+d4 = Model(d_input_4,d_output_4,name='Scale_4_Discriminator')
+
+
+d_input_3 = Input(dim3+[5])
+t = Conv2D(64,3,padding='same',activation='relu')(d_input_3)
+t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Conv2D(128,3,padding='same',activation='relu')(t)
+t = Flatten()(t)
+t = Dense(1024)(t)
+t = Dense(512)(t)
+d_output_3 = Dense(1,activation='sigmoid')(t)
+d3 = Model(d_input_3,d_output_3,name='Scale_3_Discriminator')
+
+
+d_input_2 = Input(dim2+[5])
+t = Conv2D(128,5,padding='same',activation='relu')(d_input_2)
+t = Conv2D(256,5,padding='same',activation='relu')(t)
+t = Conv2D(256,5,padding='same',activation='relu')(t)
+t = Flatten()(t)
+t = Dense(1024)(t)
+t = Dense(512)(t)
+d_output_2 = Dense(1,activation='sigmoid')(t)
+d2 = Model(d_input_2,d_output_2,name='Scale_2_Discriminator')
+
+
+d_input_1 = Input(dim1+[5])
+t = Conv2D(128,7,padding='same',activation='relu')(d_input_1)
+t = Conv2D(256,7,padding='same',activation='relu')(t)
+t = Conv2D(512,5,padding='same',activation='relu')(t)
+t = Conv2D(128,5,padding='same',activation='relu')(t)
+t = Flatten()(t)
+t = Dense(1024)(t)
+t = Dense(512)(t)
+d_output_1 = Dense(1,activation='sigmoid')(t)
+d1 = Model(d_input_1,d_output_1,name='Scale_1_Discriminator')
 	
 """
 
