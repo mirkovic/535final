@@ -143,7 +143,7 @@ def frame_to_matrix(frames, frame_id, grid):
 	A = np.zeros((160, 80))
 	for p_id, avg_loc in frames[frame_id]:
 		x, y = round(float(avg_loc[0])), round(avg_loc[1])
-		A[x-grid.origin[0]-1][y-grid.origin[1]-1] = 1
+		A[int(x-grid.origin[0]-1)][int(y-grid.origin[1]-1)] = 1
 	return A
 
 # get matrix reps of a set of n_future frames with const # ppl > min_ppl

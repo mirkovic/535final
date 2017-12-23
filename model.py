@@ -313,7 +313,7 @@ GAN.compile(loss='binary_crossentropy', optimizer=Adam(lr=1e-3))
 #GAN.summary()
 a = []
 print('getting matrices')
-for i in range(15):
+for i in range(1000):
 	new_frames = get_matrices()
 	list_frames = []
 	keys = list(new_frames.keys())
@@ -336,7 +336,7 @@ print(Y.shape)
 discriminator_losses = []
 generator_losses = []
 
-for e in range(100): 
+for e in range(1000): 
 	print(e)
 	g_frames = G.predict(X)
 	
@@ -369,7 +369,7 @@ for e in range(100):
 	g_loss = GAN.train_on_batch(X, [y2,y2,y2,y2] )
 	generator_losses.append(sum(g_loss))
 	print(g_loss)
-	if e%10==0:
+	if e%100==0:
 		plt.plot(range(e+1),discriminator_losses,label='D loss')
 		plt.plot(range(e+1),generator_losses,label='G loss')
 		plt.legend()
