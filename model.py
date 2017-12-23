@@ -236,7 +236,7 @@ d3 = Model(d_input_3,d_output_3,name='Scale_3_Discriminator')
 d_input_2 = Input(dim2+[5])
 t = Conv2D(32,5,padding='same',activation='relu')(d_input_2)
 t = Conv2D(64,5,padding='same',activation='relu')(t)
-t = Conv2D(64,5,padding='same',activation='relu')(t)
+#t = Conv2D(64,5,padding='same',activation='relu')(t)
 t = Flatten()(t)
 #t = Dense(128)(t)
 t = Dense(64)(t)
@@ -250,7 +250,7 @@ t = Conv2D(32,7,padding='same',activation='relu')(t)
 #t = Conv2D(64,5,padding='same',activation='relu')(t)
 t = Conv2D(16,5,padding='same',activation='relu')(t)
 t = Flatten()(t)
-t = Dense(128)(t)
+#t = Dense(128)(t)
 t = Dense(64)(t)
 d_output_1 = Dense(1,activation='sigmoid')(t)
 d1 = Model(d_input_1,d_output_1,name='Scale_1_Discriminator')
@@ -344,7 +344,7 @@ print(Y.shape)
 discriminator_losses = []
 generator_losses = []
 
-num_epochs = 50
+num_epochs = 10
 for e in range(num_epochs): 
 	print(e)
 	g_frames = G.predict(X)
@@ -371,7 +371,7 @@ for e in range(num_epochs):
 	
 	y2 = np.full([int(n_points/2)],1,dtype=np.int32)
 	#y2 = to_categorical(y2)
-
+ 
 	make_trainable(D,False)
 	g_loss = GAN.train_on_batch(X, [y2,y2,y2,y2] )
 	generator_losses.append(sum(g_loss))
@@ -380,7 +380,7 @@ for e in range(num_epochs):
 		plt.plot(range(e+1),discriminator_losses,label='D loss')
 		plt.plot(range(e+1),generator_losses,label='G loss')
 		plt.legend()
-		plt.savefig(str(e)+'png')
+		plt.savefig(str(e)+'.png')
 		plt.close()
 GAN.save('GAN.h5')	
 D.save('D.h5')
