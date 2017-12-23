@@ -304,6 +304,8 @@ d_connnected_to_g = [
 	
 
 GAN = Model( g_input, outputs = d_connnected_to_g )
+GAN.summary()
+
 #print(GAN.predict(np.random.uniform(0,1,size=[3,160,80,4])))
 random_input = np.random.uniform(0,1,size=[3,160,80,4])
 print()
