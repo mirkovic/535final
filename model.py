@@ -14,6 +14,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import os
 import time
 
 #from frames1 import filter_frames
@@ -311,22 +312,28 @@ GAN.compile(loss='binary_crossentropy', optimizer=Adam(lr=1e-3))
 #GAN.summary()
 a = []
 print('getting matrices')
-for i in range(1000):
-	if i % 20 == 0:
-		print('getting matrix',i)
-	new_frames = get_matrices()
-	list_frames = []
-	keys = list(new_frames.keys())
-	keys.sort()
-	for i in keys:
-		list_frames.append(new_frames[i])
-		
-	frames_array = np.asarray(list_frames)
-	a.append(frames_array)
-a = np.asarray(a)
-a = np.swapaxes(a,1,3)
-a = np.swapaxes(a,1,2)
-print(a.shape)	
+if os.path.isfile('data/useful.npy'):
+	a = np.load('data/useful.npy')
+	print('loaded numpy dataset')
+else:
+	for i in range(1000):
+		if i % 20 == 0:
+			print('getting matrix',i)
+		new_frames = get_matrices()
+		list_frames = []
+		keys = list(new_frames.keys())
+		keys.sort()
+		for i in keys:
+			list_frames.append(new_frames[i])
+			
+		frames_array = np.asarray(list_frames)
+		a.append(frames_array)
+	a = np.asarray(a)
+	a = np.swapaxes(a,1,3)
+	a = np.swapaxes(a,1,2)
+	print(a.shape)	
+	np.save('data/useful.npy',a)
+
 X = a[:,:,:,:4]
 Y = a[:,:,:,4:]
 print(X.shape)
@@ -351,11 +358,9 @@ for e in range(1000):
 	y = np.zeros([n_points],dtype=np.int32)
 	y[0:int(n_points/2)] = 0
 	y[int(n_points/2):] = 1
-	print(y.shape)
-	print(y)
+	
 	#y = to_categorical(y)
-	print(y.shape)
-	print(y)
+	
 	make_trainable(D,True)
 	d_loss  = D.train_on_batch(d_train,[y,y,y,y])
 	discriminator_losses.append(sum(d_loss))
@@ -368,7 +373,7 @@ for e in range(1000):
 	make_trainable(D,False)
 	g_loss = GAN.train_on_batch(X, [y2,y2,y2,y2] )
 	generator_losses.append(sum(g_loss))
-	print(g_loss)
+	
 	if e%100==0:
 		plt.plot(range(e+1),discriminator_losses,label='D loss')
 		plt.plot(range(e+1),generator_losses,label='G loss')
